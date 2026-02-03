@@ -94,3 +94,14 @@ function initializetools() {
     // Navigation is handled by initializeNavigation()
     // This function can be extended for additional tools features
 }
+document.addEventListener("DOMContentLoaded", () => {
+  const mobileToggle = document.querySelector(".mobile-menu-toggle");
+  const navMenu = document.querySelector(".nav-menu");
+
+  if (mobileToggle && navMenu) {
+    mobileToggle.addEventListener("click", () => {
+      navMenu.classList.toggle("active");
+    });
+  }
+});
+

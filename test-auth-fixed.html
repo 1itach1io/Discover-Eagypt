@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار نظام المصادقة - Discover Egypt</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s;
+        }
+        
+        .status-item.success {
+            border-color: #4caf50;
+            background: #f1f8f4;
+        }
+        
+        .status-item.error {
+            border-color: #f44336;
+            background: #fff3f3;
+        }
+        
+        .status-item.pending {
+            border-color: #ff9800;
+            background: #fff8f0;
+        }
+        
+        .status-label {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .status-icon {
+            font-size: 24px;
+        }
+        
+        .success .status-icon {
+            color: #4caf50;
+        }
+        
+        .error .status-icon {
+            color: #f44336;
+        }
+        
+        .pending .status-icon {
+            color: #ff9800;
+        }
+        
+        .test-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: transform 0.2s;
+        }
+        
+        .test-button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .test-button:active {
+            transform: translateY(0);
+        }
+        
+        .log-container {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .log-container.show {
+            display: block;
+        }
+        
+        .log-line {
+            margin-bottom: 5px;
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            border-right: 4px solid #2196f3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .info-box h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        
+        .info-box ul {
+            margin-right: 20px;
+            color: #555;
+        }
+        
+        .info-box li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 اختبار نظام المصادقة</h1>
+        <p class="subtitle">اختبار سريع للتأكد من عمل جميع المكونات بشكل صحيح</p>
+        
+        <div class="status-card">
+            <h3 style="margin-bottom: 15px; color: #333;">📊 حالة المكونات:</h3>
+            
+            <div class="status-item pending" id="status-firebase">
+                <span class="status-label">Firebase SDK</span>
+                <span class="status-icon">⏳</span>
+            </div>
+            
+            <div class="status-item pending" id="status-auth">
+                <span class="status-label">Firebase Auth</span>
+                <span class="status-icon">⏳</span>
+            </div>
+            
+            <div class="status-item pending" id="status-firestore">
+                <span class="status-label">Firestore Database</span>
+                <span class="status-icon">⏳</span>
+            </div>
+            
+            <div class="status-item pending" id="status-authmanager">
+                <span class="status-label">Auth Manager</span>
+                <span class="status-icon">⏳</span>
+            </div>
+            
+            <div class="status-item pending" id="status-authui">
+                <span class="status-label">Auth UI System</span>
+                <span class="status-icon">⏳</span>
+            </div>
+            
+            <div class="status-item pending" id="status-modal">
+                <span class="status-label">Modal Function</span>
+                <span class="status-icon">⏳</span>
+            </div>
+        </div>
+        
+        <button class="test-button" onclick="testAuthModal()">
+            🚀 اختبار فتح نافذة تسجيل الدخول
+        </button>
+        
+        <button class="test-button" onclick="toggleLog()" style="background: #546e7a; margin-top: 10px;">
+            📋 عرض/إخفاء سجل الأخطاء
+        </button>
+        
+        <div class="log-container" id="logContainer"></div>
+        
+        <div class="info-box">
+            <h3>📝 ماذا تفعل بعد الاختبار:</h3>
+            <ul>
+                <li>إذا كانت جميع العلامات <strong style="color: #4caf50;">✅ خضراء</strong> - النظام يعمل بشكل ممتاز!</li>
+                <li>إذا ظهرت علامة <strong style="color: #f44336;">❌ حمراء</strong> - افتح سجل الأخطاء لمعرفة السبب</li>
+                <li>زر "اختبار فتح نافذة تسجيل الدخول" يجب أن يفتح نافذة المصادقة</li>
+                <li>بعد نجاح الاختبار، افتح الموقع الرئيسي (index.html)</li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Auth Scripts -->
+    <script src="js/auth/firebase-config.js"></script>
+    <script src="js/auth/auth-translations.js"></script>
+    <script src="js/auth/activity-tracker.js"></script>
+    <script src="js/auth/auth-manager.js"></script>
+    <script src="js/auth/auth-ui.js"></script>
+    
+    <script>
+        const logs = [];
+        
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString('ar-EG');
+            logs.push(`[${timestamp}] ${message}`);
+            updateLogDisplay();
+        }
+        
+        function updateLogDisplay() {
+            const logContainer = document.getElementById('logContainer');
+            logContainer.innerHTML = logs.map(log => 
+                `<div class="log-line">${log}</div>`
+            ).join('');
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        function updateStatus(id, success) {
+            const element = document.getElementById(id);
+            if (success) {
+                element.classList.remove('pending', 'error');
+                element.classList.add('success');
+                element.querySelector('.status-icon').textContent = '✅';
+            } else {
+                element.classList.remove('pending');
+                element.classList.add('error');
+                element.querySelector('.status-icon').textContent = '❌';
+            }
+        }
+        
+        function toggleLog() {
+            const logContainer = document.getElementById('logContainer');
+            logContainer.classList.toggle('show');
+        }
+        
+        function testAuthModal() {
+            addLog('🧪 اختبار فتح نافذة المصادقة...');
+            
+            if (typeof window.authUI !== 'undefined' && typeof window.authUI.showAuthModal === 'function') {
+                window.authUI.showAuthModal('login');
+                addLog('✅ تم فتح نافذة المصادقة بنجاح!');
+            } else {
+                addLog('❌ خطأ: authUI غير متاح', 'error');
+                alert('خطأ: نظام المصادقة غير متاح. الرجاء التحقق من سجل الأخطاء.');
+            }
+        }
+        
+        // Test Firebase
+        addLog('🔍 بدء فحص المكونات...');
+        
+        setTimeout(() => {
+            // Check Firebase SDK
+            if (typeof firebase !== 'undefined') {
+                updateStatus('status-firebase', true);
+                addLog('✅ Firebase SDK محمّل بنجاح');
+            } else {
+                updateStatus('status-firebase', false);
+                addLog('❌ فشل تحميل Firebase SDK');
+            }
+            
+            // Check Firebase Auth
+            if (typeof firebase !== 'undefined' && firebase.auth) {
+                updateStatus('status-auth', true);
+                addLog('✅ Firebase Auth مهيأ بنجاح');
+            } else {
+                updateStatus('status-auth', false);
+                addLog('❌ فشل تهيئة Firebase Auth');
+            }
+            
+            // Check Firestore
+            if (typeof firebase !== 'undefined' && firebase.firestore) {
+                updateStatus('status-firestore', true);
+                addLog('✅ Firestore Database مهيأ بنجاح');
+            } else {
+                updateStatus('status-firestore', false);
+                addLog('❌ فشل تهيئة Firestore');
+            }
+            
+            // Check authManager
+            if (typeof window.authManager !== 'undefined') {
+                updateStatus('status-authmanager', true);
+                addLog('✅ Auth Manager محمّل بنجاح');
+            } else {
+                updateStatus('status-authmanager', false);
+                addLog('❌ فشل تحميل Auth Manager');
+            }
+            
+            // Check authUI
+            if (typeof window.authUI !== 'undefined') {
+                updateStatus('status-authui', true);
+                addLog('✅ Auth UI System محمّل بنجاح');
+            } else {
+                updateStatus('status-authui', false);
+                addLog('❌ فشل تحميل Auth UI System');
+            }
+            
+            // Check showAuthModal function
+            if (typeof window.authUI !== 'undefined' && typeof window.authUI.showAuthModal === 'function') {
+                updateStatus('status-modal', true);
+                addLog('✅ دالة فتح النافذة متاحة وجاهزة');
+            } else {
+                updateStatus('status-modal', false);
+                addLog('❌ دالة فتح النافذة غير متاحة');
+            }
+            
+            addLog('🏁 اكتمل الفحص!');
+            
+            // Auto summary
+            const allSuccess = document.querySelectorAll('.status-item.success').length === 6;
+            if (allSuccess) {
+                addLog('🎉 جميع المكونات تعمل بشكل صحيح!');
+                addLog('💡 يمكنك الآن اختبار فتح نافذة المصادقة');
+            } else {
+                addLog('⚠️ بعض المكونات لا تعمل. راجع الأخطاء أعلاه.');
+            }
+        }, 2000);
+        
+        // Error handler
+        window.addEventListener('error', function(e) {
+            addLog(`🚨 خطأ: ${e.error}`, 'error');
+        });
+    </script>
+</body>
+</html>

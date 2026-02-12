@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار نظام المصادقة</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .test-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .status {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 8px;
+        }
+        
+        .status-icon {
+            font-size: 20px;
+        }
+        
+        .status-text {
+            flex: 1;
+            font-size: 14px;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #38a169;
+        }
+        
+        .console-output {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .console-output.show {
+            display: block;
+        }
+        
+        .log-line {
+            margin-bottom: 5px;
+        }
+        
+        .log-success {
+            color: #00ff00;
+        }
+        
+        .log-error {
+            color: #ff4444;
+        }
+        
+        .log-info {
+            color: #4fc3f7;
+        }
+    </style>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Auth System CSS -->
+    <link rel="stylesheet" href="css/auth-styles.css">
+</head>
+<body>
+
+<div class="test-container">
+    <h1>🧪 اختبار نظام المصادقة</h1>
+    <p class="subtitle">صفحة اختبار بسيطة للتحقق من عمل Firebase</p>
+    
+    <div class="status" id="statusContainer">
+        <div class="status-item">
+            <span class="status-icon" id="firebaseIcon">⏳</span>
+            <span class="status-text">Firebase SDK</span>
+        </div>
+        <div class="status-item">
+            <span class="status-icon" id="authIcon">⏳</span>
+            <span class="status-text">Firebase Authentication</span>
+        </div>
+        <div class="status-item">
+            <span class="status-icon" id="firestoreIcon">⏳</span>
+            <span class="status-text">Cloud Firestore</span>
+        </div>
+        <div class="status-item">
+            <span class="status-icon" id="authUIIcon">⏳</span>
+            <span class="status-text">Auth UI System</span>
+        </div>
+    </div>
+    
+    <button class="btn btn-primary" onclick="testAuthModal()">
+        🔓 فتح نافذة تسجيل الدخول
+    </button>
+    
+    <button class="btn btn-secondary" onclick="toggleConsole()">
+        📋 عرض/إخفاء السجل
+    </button>
+    
+    <div class="console-output" id="consoleOutput"></div>
+</div>
+
+<!-- Auth System Scripts -->
+<script src="js/auth/firebase-config.js"></script>
+<script src="js/auth/auth-translations.js"></script>
+<script src="js/auth/activity-tracker.js"></script>
+<script src="js/auth/auth-manager.js"></script>
+<script src="js/auth/auth-ui.js"></script>
+
+<script>
+// Console logging
+const consoleDiv = document.getElementById('consoleOutput');
+
+function log(message, type = 'info') {
+    const line = document.createElement('div');
+    line.className = `log-line log-${type}`;
+    line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+    consoleDiv.appendChild(line);
+    consoleDiv.scrollTop = consoleDiv.scrollHeight;
+}
+
+function updateStatus(id, success) {
+    const icon = document.getElementById(id);
+    icon.textContent = success ? '✅' : '❌';
+}
+
+function toggleConsole() {
+    consoleDiv.classList.toggle('show');
+}
+
+// Run tests after page load
+setTimeout(() => {
+    log('Starting system checks...', 'info');
+    
+    // Check Firebase SDK
+    if (typeof firebase !== 'undefined') {
+        updateStatus('firebaseIcon', true);
+        log('✓ Firebase SDK loaded', 'success');
+    } else {
+        updateStatus('firebaseIcon', false);
+        log('✗ Firebase SDK NOT loaded', 'error');
+    }
+    
+    // Check Firebase Auth
+    if (window.firebaseAuth) {
+        updateStatus('authIcon', true);
+        log('✓ Firebase Auth initialized', 'success');
+    } else {
+        updateStatus('authIcon', false);
+        log('✗ Firebase Auth NOT initialized', 'error');
+    }
+    
+    // Check Firestore
+    if (window.firebaseDB) {
+        updateStatus('firestoreIcon', true);
+        log('✓ Firestore initialized', 'success');
+    } else {
+        updateStatus('firestoreIcon', false);
+        log('✗ Firestore NOT initialized', 'error');
+    }
+    
+    // Check authUI
+    if (window.authUI && typeof window.authUI.showAuthModal === 'function') {
+        updateStatus('authUIIcon', true);
+        log('✓ Auth UI system loaded', 'success');
+    } else {
+        updateStatus('authUIIcon', false);
+        log('✗ Auth UI system NOT loaded', 'error');
+    }
+    
+    log('All checks complete!', 'info');
+    log('---', 'info');
+    log('Click "فتح نافذة تسجيل الدخول" to test', 'info');
+    
+}, 2000);
+
+// Test function
+function testAuthModal() {
+    log('Attempting to open auth modal...', 'info');
+    
+    if (window.authUI && typeof window.authUI.showAuthModal === 'function') {
+        window.authUI.showAuthModal('login');
+        log('✓ Auth modal opened successfully!', 'success');
+    } else {
+        log('✗ Cannot open auth modal - authUI not available', 'error');
+        alert('خطأ: نظام المصادقة غير محمل. تحقق من Console للمزيد من التفاصيل.');
+    }
+}
+
+// Show errors in console output too
+window.addEventListener('error', function(e) {
+    log(`ERROR: ${e.message}`, 'error');
+});
+</script>
+
+</body>
+</html>

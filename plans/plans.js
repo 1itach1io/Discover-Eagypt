@@ -1,7 +1,16 @@
 // اكتشف مصر - النسخة المحسّنة والمصلحة
 const CONFIG={apiKey:"AIzaSyDdJHBy-Ai8MBQQgFJCsolOE1VvCPwWOCQ",authDomain:"discover-egypt-13ef7.firebaseapp.com",projectId:"discover-egypt-13ef7",storageBucket:"discover-egypt-13ef7.firebasestorage.app",messagingSenderId:"346176085799",appId:"1:346176085799:web:b1bb866154ea56ef6db8e3"};
-firebase.initializeApp(CONFIG);
-const auth=firebase.auth(),db=firebase.firestore();
+
+// فحص Firebase قبل التهيئة لتجنب التكرار
+let auth, db;
+if (!firebase.apps.length) {
+    firebase.initializeApp(CONFIG);
+    console.log('[Plans] Firebase initialized');
+} else {
+    console.log('[Plans] Firebase already initialized, reusing');
+}
+auth = firebase.auth();
+db = firebase.firestore();
 
 const RATES={EGP:1,USD:0.02,EUR:0.019,GBP:0.016,SAR:0.076,AED:0.074};
 const SYMBOLS={EGP:'£',USD:'$',EUR:'€',GBP:'£',SAR:'﷼',AED:'د.إ'};
@@ -87,7 +96,8 @@ const TRANSLATIONS = {
     savePlan: 'حفظ الخطة',
     sharePlan: 'مشاركة الخطة',
     tripTo: 'رحلة إلى',
-    for: 'لـ'
+    for: 'لـ',
+    compareSelected: 'قارن المحافظات المختارة'
   },
   en: {
     siteName: 'Discover Egypt',
@@ -168,7 +178,8 @@ const TRANSLATIONS = {
     savePlan: 'Save Plan',
     sharePlan: 'Share Plan',
     tripTo: 'Trip to',
-    for: 'for'
+    for: 'for',
+    compareSelected: 'Compare Selected Governorates'
   },
   fr: {
     siteName: 'Découvrir l\'Égypte',
@@ -249,13 +260,16 @@ const TRANSLATIONS = {
     savePlan: 'Enregistrer le Plan',
     sharePlan: 'Partager le Plan',
     tripTo: 'Voyage à',
-    for: 'pour'
+    for: 'pour',
+    compareSelected: 'Comparer les Gouvernorats Sélectionnés'
   }
 };
 
 // قاعدة بيانات المناطق والمحافظات (مختصرة للحجم)
 const REGIONS={
   'القاهرة الكبرى':{
+    nameEn:'Greater Cairo',
+    nameFr:'Grand Caire',
     emoji:'🏛️',
     desc:'قلب مصر النابض بالحياة والتاريخ',
     descEn:'The vibrant heart of Egypt, pulsing with life and history',
@@ -267,6 +281,8 @@ const REGIONS={
     }
   },
   'البحر المتوسط':{
+    nameEn:'Mediterranean',
+    nameFr:'Méditerranée',
     emoji:'🌊',
     desc:'لؤلؤة البحر المتوسط والتاريخ',
     descEn:'Pearl of the Mediterranean and History',
@@ -278,6 +294,8 @@ const REGIONS={
     }
   },
   'الدلتا':{
+    nameEn:'The Delta',
+    nameFr:'Le Delta',
     emoji:'🌾',
     desc:'سلة غذاء مصر والخير الوفير',
     descEn:'Egypt\'s Food Basket and Abundant Goodness',
@@ -287,6 +305,8 @@ const REGIONS={
     }
   },
   'الصعيد':{
+    nameEn:'Upper Egypt',
+    nameFr:'Haute-Égypte',
     emoji:'🏺',
     desc:'مهد الحضارة الفرعونية',
     descEn:'Cradle of Pharaonic Civilization',
@@ -297,6 +317,8 @@ const REGIONS={
     }
   },
   'البحر الأحمر':{
+    nameEn:'Red Sea',
+    nameFr:'Mer Rouge',
     emoji:'🐠',
     desc:'جنة الغطس والشعاب المرجانية',
     descEn:'Diving Paradise and Coral Reefs',
@@ -357,6 +379,7 @@ const app={
   user:null,
   selection:{region:null,governorate:null,days:3,travelers:2,budget:'moderate',interests:['history']},
   currentPlan:null,
+  compareSelection:[], // المحافظات المختارة للمقارنة
   
   t(key){
     return TRANSLATIONS[this.lang][key]||key;
@@ -366,6 +389,7 @@ const app={
     this.renderRegions();
     this.setupEvents();
     this.updateAllTexts();
+    this.renderCompareSelector(); // إضافة قائمة المقارنة
     auth.onAuthStateChanged(u=>this.user=u);
   },
   
@@ -387,6 +411,7 @@ const app={
       '.generate-btn span': 'generatePlan',
       '.compare-section h2': 'compareCities',
       '.compare-section p': 'compareDesc',
+      '.compare-btn span': 'compareSelected',
       '.loader-text': 'creatingTrip',
       '.footer-bottom p': 'footerCopyright'
     };
@@ -477,20 +502,28 @@ const app={
     if(this.selection.region) this.renderGovernorates(this.selection.region);
     if(this.selection.governorate) this.updateBudgetPrices(this.selection.governorate.data.budget);
     if(this.currentPlan) this.displayPlan();
+    
+    // إعادة رسم قائمة المقارنة
+    this.renderCompareSelector();
+    if(this.compareSelection.length > 0){
+      this.showComparison();
+    }
   },
   
   renderRegions(){
     const container=document.getElementById('regionsShowcase');
+    if(!container) return;
     container.innerHTML='';
     Object.keys(REGIONS).forEach(key=>{
       const r=REGIONS[key];
       const card=document.createElement('div');
       card.className='region-card';
+      const regionName=this.lang==='ar'?key:this.lang==='en'?(r.nameEn||key):(r.nameFr||key);
       const desc=this.lang==='ar'?r.desc:this.lang==='en'?r.descEn:r.descFr;
       const countLabel=this.t('governorateLabel');
       card.innerHTML=`
         <span class="region-emoji">${r.emoji}</span>
-        <div class="region-name">${key}</div>
+        <div class="region-name">${regionName}</div>
         <div class="region-count">${Object.keys(r.governorates).length} ${countLabel}</div>
         <div class="region-desc">${desc}</div>
       `;
@@ -624,19 +657,25 @@ const app={
   
   displayPlan(){
     const{governorate,days,travelers,budget,interests}=this.selection;
+    if(!governorate||!governorate.data){
+      alert(this.t('selectGovFirst'));
+      return;
+    }
+    
     const g=governorate.data;
-    const daily=g.budget[budget];
+    const daily=g.budget&&g.budget[budget]?g.budget[budget]:500;
     const total=daily*days*travelers;
     
-    const name=this.lang==='ar'?g.name:this.lang==='en'?g.nameEn:g.nameFr;
+    const name=this.lang==='ar'?g.name:this.lang==='en'?(g.nameEn||g.name):(g.nameFr||g.name);
     const tripType=budget==='budget'?this.t('economicTrip'):budget==='moderate'?this.t('moderateTrip'):this.t('luxuryTrip');
     const travelerText=travelers===1?this.t('traveler'):this.t('travelers');
-    const attractions=this.lang==='ar'?g.attractions:this.lang==='en'?g.attractionsEn:g.attractionsFr;
+    const dayText=days===1?this.t('day'):this.t('days');
+    const attractions=this.lang==='ar'?g.attractions:this.lang==='en'?(g.attractionsEn||g.attractions):(g.attractionsFr||g.attractions);
     
     let html=`
       <div class="plan-result" id="planToPrint">
         <div class="plan-header-result">
-          <h2>${this.t('tripTo')} ${name} - ${days} ${this.t('days')}</h2>
+          <h2>${this.t('tripTo')} ${name} - ${days} ${dayText}</h2>
           <p>${tripType} ${this.t('for')} ${travelers} ${travelerText}</p>
         </div>
         
@@ -683,7 +722,7 @@ const app={
         <div class="attractions-list">
           <h3>🎯 ${this.t('topAttractions')}</h3>
           <div class="attractions-grid">
-            ${attractions.map(a=>`<div class="attraction-tag">✓ ${a}</div>`).join('')}
+            ${attractions&&Array.isArray(attractions)?attractions.map(a=>`<div class="attraction-tag">✓ ${a}</div>`).join(''):''}
           </div>
         </div>
         
@@ -710,23 +749,47 @@ const app={
   generateItinerary(gov,days,interests){
     let html='';
     const times=[this.t('morning'),this.t('afternoon'),this.t('evening')];
+    let activityCount=0;
+    
     interests.forEach(int=>{
-      const acts=gov.activities[int]||[];
+      const acts=gov.activities&&gov.activities[int]?gov.activities[int]:[];
       acts.slice(0,days*3).forEach((act,i)=>{
-        const day=Math.floor(i/3)+1;
-        const time=times[i%3];
-        if(i%3===0)html+=`<div class="day-header">${this.t('dayLabel')} ${day}</div>`;
+        const day=Math.floor(activityCount/3)+1;
+        const time=times[activityCount%3];
+        if(activityCount%3===0)html+=`<div class="day-header">${this.t('dayLabel')} ${day}</div>`;
         html+=`<div class="activity-item"><span class="time">${time}</span><span>${act}</span></div>`;
+        activityCount++;
       });
     });
-    return html||`<p>${this.lang==='ar'?'برنامج مخصص سيتم إعداده':this.lang==='en'?'Custom program will be prepared':'Programme personnalisé sera préparé'}</p>`;
+    
+    if(!html){
+      const msg=this.lang==='ar'?'برنامج مخصص سيتم إعداده':this.lang==='en'?'Custom program will be prepared':'Programme personnalisé sera préparé';
+      html=`<div class="activity-item"><span>${msg}</span></div>`;
+    }
+    
+    return html;
   },
   
   getTips(interests){
     let tips=[];
+    if(!interests||!Array.isArray(interests)) return tips;
+    
     interests.forEach(int=>{
-      if(TRAVEL_TIPS[this.lang][int])tips.push(...TRAVEL_TIPS[this.lang][int]);
+      if(TRAVEL_TIPS[this.lang]&&TRAVEL_TIPS[this.lang][int]){
+        tips.push(...TRAVEL_TIPS[this.lang][int]);
+      }
     });
+    
+    // إذا لم توجد نصائح، إضافة نصائح عامة
+    if(tips.length===0){
+      const generalTips=this.lang==='ar'?
+        ['📸 التقط صوراً تذكارية','💧 احمل مياه كافية','🗺️ خطط رحلتك مسبقاً']:
+        this.lang==='en'?
+        ['📸 Take memorable photos','💧 Carry enough water','🗺️ Plan your trip in advance']:
+        ['📸 Prenez des photos','💧 Portez assez d\'eau','🗺️ Planifiez votre voyage'];
+      tips=generalTips;
+    }
+    
     return tips.slice(0,6);
   },
   
@@ -823,8 +886,10 @@ const app={
   },
   
   formatPrice(amount){
+    if(!amount || isNaN(amount)) return SYMBOLS[this.currency]+'0';
     const val=amount/RATES.EGP*RATES[this.currency];
-    return SYMBOLS[this.currency]+Math.round(val).toLocaleString();
+    const rounded=Math.round(val);
+    return SYMBOLS[this.currency]+rounded.toLocaleString();
   },
   
   showLoader(){
@@ -837,6 +902,174 @@ const app={
   
   scrollToTop(){
     window.scrollTo({top:0,behavior:'smooth'});
+  },
+  
+  // دوال المقارنة
+  renderCompareSelector(){
+    const container = document.getElementById('compareSelectorGrid');
+    if(!container) return;
+    
+    container.innerHTML = '';
+    const allGovs = [];
+    
+    // جمع كل المحافظات من جميع المناطق
+    Object.keys(REGIONS).forEach(regionKey => {
+      const region = REGIONS[regionKey];
+      if(region.governorates){
+        Object.keys(region.governorates).forEach(govKey => {
+          const gov = region.governorates[govKey];
+          allGovs.push({
+            key: govKey,
+            data: gov,
+            region: regionKey
+          });
+        });
+      }
+    });
+    
+    // عرض كل المحافظات
+    allGovs.forEach(gov => {
+      const name = this.lang==='ar' ? gov.data.name : this.lang==='en' ? (gov.data.nameEn||gov.data.name) : (gov.data.nameFr||gov.data.name);
+      const type = this.lang==='ar' ? gov.data.type : this.lang==='en' ? (gov.data.typeEn||gov.data.type) : (gov.data.typeFr||gov.data.type);
+      
+      const item = document.createElement('div');
+      item.className = 'compare-item';
+      item.innerHTML = `
+        <div class="compare-item-icon">${gov.data.icon||'🏛️'}</div>
+        <div class="compare-item-name">${name}</div>
+        <div class="compare-item-type">${type}</div>
+      `;
+      
+      item.onclick = () => this.toggleCompareSelection(gov);
+      
+      // تحديد الزر إذا كان مختاراً
+      if(this.compareSelection.find(g => g.key === gov.key)){
+        item.classList.add('selected');
+      }
+      
+      container.appendChild(item);
+    });
+  },
+  
+  toggleCompareSelection(gov){
+    const index = this.compareSelection.findIndex(g => g.key === gov.key);
+    const items = document.querySelectorAll('.compare-item');
+    
+    if(index > -1){
+      // إزالة من القائمة
+      this.compareSelection.splice(index, 1);
+    } else {
+      // إضافة للقائمة (بحد أقصى 4 محافظات)
+      if(this.compareSelection.length >= 4){
+        const msg = this.lang==='ar'?'يمكنك مقارنة 4 محافظات كحد أقصى':this.lang==='en'?'You can compare up to 4 governorates':'Vous pouvez comparer jusqu\'à 4 gouvernorats';
+        alert(msg);
+        return;
+      }
+      this.compareSelection.push(gov);
+    }
+    
+    // تحديث الأزرار المختارة
+    items.forEach((item, i) => {
+      const allGovs = [];
+      Object.keys(REGIONS).forEach(regionKey => {
+        const region = REGIONS[regionKey];
+        Object.keys(region.governorates).forEach(govKey => {
+          allGovs.push({key: govKey});
+        });
+      });
+      
+      const currentGov = allGovs[i];
+      if(currentGov && this.compareSelection.find(g => g.key === currentGov.key)){
+        item.classList.add('selected');
+      } else {
+        item.classList.remove('selected');
+      }
+    });
+    
+    // تحديث زر المقارنة
+    const btn = document.getElementById('compareBtn');
+    if(this.compareSelection.length >= 2){
+      btn.disabled = false;
+    } else {
+      btn.disabled = true;
+    }
+  },
+  
+  showComparison(){
+    if(this.compareSelection.length < 2){
+      const msg = this.lang==='ar'?'اختر محافظتين على الأقل للمقارنة':this.lang==='en'?'Select at least 2 governorates to compare':'Sélectionnez au moins 2 gouvernorats pour comparer';
+      alert(msg);
+      return;
+    }
+    
+    const container = document.getElementById('compareContainer');
+    if(!container) return;
+    
+    const title = this.lang==='ar'?'مقارنة المحافظات':this.lang==='en'?'Governorate Comparison':'Comparaison des Gouvernorats';
+    
+    let html = `
+      <div class="comparison-table">
+        <div class="comparison-header">
+          <h3>${title}</h3>
+        </div>
+        <div class="comparison-cards">
+    `;
+    
+    // بطاقة لكل محافظة
+    this.compareSelection.forEach(gov => {
+      if(!gov||!gov.data) return;
+      
+      const name = this.lang==='ar' ? gov.data.name : this.lang==='en' ? (gov.data.nameEn||gov.data.name) : (gov.data.nameFr||gov.data.name);
+      const type = this.lang==='ar' ? gov.data.type : this.lang==='en' ? (gov.data.typeEn||gov.data.type) : (gov.data.typeFr||gov.data.type);
+      const desc = this.lang==='ar' ? gov.data.desc : this.lang==='en' ? (gov.data.descEn||gov.data.desc) : (gov.data.descFr||gov.data.desc);
+      const attractions = this.lang==='ar' ? gov.data.attractions : this.lang==='en' ? (gov.data.attractionsEn||gov.data.attractions) : (gov.data.attractionsFr||gov.data.attractions);
+      
+      const budgetLabel = this.lang==='ar'?'الميزانية اليومية':this.lang==='en'?'Daily Budget':'Budget Quotidien';
+      const attractionsLabel = this.lang==='ar'?'المعالم':this.lang==='en'?'Attractions':'Attractions';
+      const economicLabel = this.lang==='ar'?'اقتصادي':this.lang==='en'?'Economic':'Économique';
+      const moderateLabel = this.lang==='ar'?'متوسط':this.lang==='en'?'Moderate':'Modéré';
+      const luxuryLabel = this.lang==='ar'?'فاخر':this.lang==='en'?'Luxury':'Luxe';
+      
+      const budget = gov.data.budget||{budget:400,moderate:1000,luxury:3000};
+      const attractionCount = attractions&&Array.isArray(attractions)?attractions.length:0;
+      
+      html += `
+        <div class="comparison-card">
+          <div class="comparison-card-header">
+            <div class="comparison-card-icon">${gov.data.icon||'🏛️'}</div>
+            <div class="comparison-card-name">${name}</div>
+            <div class="comparison-card-type">${type}</div>
+          </div>
+          <div class="comparison-card-body">
+            <div class="comparison-card-item">
+              <span class="comparison-card-item-label">${budgetLabel} (${economicLabel})</span>
+              <span class="comparison-card-item-value">${this.formatPrice(budget.budget)}</span>
+            </div>
+            <div class="comparison-card-item">
+              <span class="comparison-card-item-label">${budgetLabel} (${moderateLabel})</span>
+              <span class="comparison-card-item-value">${this.formatPrice(budget.moderate)}</span>
+            </div>
+            <div class="comparison-card-item">
+              <span class="comparison-card-item-label">${budgetLabel} (${luxuryLabel})</span>
+              <span class="comparison-card-item-value">${this.formatPrice(budget.luxury)}</span>
+            </div>
+            <div class="comparison-card-item">
+              <span class="comparison-card-item-label">${attractionsLabel}</span>
+              <span class="comparison-card-item-value">${attractionCount}+</span>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    
+    html += `
+        </div>
+      </div>
+    `;
+    
+    container.innerHTML = html;
+    container.style.display = 'block';
+    container.scrollIntoView({behavior: 'smooth', block: 'start'});
   }
 };
 
